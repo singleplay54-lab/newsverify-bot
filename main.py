@@ -9,7 +9,6 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-
 @app.route("/", methods=["GET"])
 def home():
     return "Bot is running", 200
@@ -19,10 +18,7 @@ def home():
 def webhook():
     data = request.get_json(silent=True)
 
-    if not data:
-        return jsonify({"status": "no data"}), 200
-
-    if "message" not in data:
+    if not data or "message" not in data:
         return jsonify({"status": "ignored"}), 200
 
     chat_id = data["message"]["chat"]["id"]
@@ -32,10 +28,10 @@ def webhook():
         return jsonify({"status": "no text"}), 200
 
     # 🔥 Gemini API call (INSIDE webhook)
-  gemini_url = (
-    "https://generativelanguage.googleapis.com/v1beta/models/"
-    f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-)
+    gemini_url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    )
 
     payload = {
         "contents": [{
@@ -57,7 +53,7 @@ Claim: {text}
     except Exception as e:
         gemini_reply = "⚠️ AI error. Please try again."
 
-    # 📤 Send Gemini reply to Telegram
+    # 📤 Send reply to Telegram
     requests.post(
         f"{TELEGRAM_API}/sendMessage",
         json={
@@ -67,5 +63,4 @@ Claim: {text}
     )
 
     return jsonify({"status": "ok"}), 200
-
 

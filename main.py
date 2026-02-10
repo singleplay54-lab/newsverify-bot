@@ -1,53 +1,46 @@
 import os
 import requests
-from flask import Flask, request
-
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 def home():
-    return "Bot is running"
+    return "Bot is running", 200
+
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    try:
-        data = request.get_json(force=True)
-        print("Incoming update:", data)
+    data = request.get_json(silent=True)
 
-        if "message" not in data:
-            return "ok", 200
+    if not data:
+        return jsonify({"status": "no data"}), 200
 
-        chat_id = data["message"]["chat"]["id"]
-        text = data["message"].get("text", "")
+    if "message" not in data:
+        return jsonify({"status": "ignored"}), 200
 
-        if not text:
-            return "ok", 200
+    chat_id = data["message"]["chat"]["id"]
+    text = data["message"].get("text", "")
 
-        reply = fact_check(text)
+    if not text:
+        return jsonify({"status": "no text"}), 200
 
-        requests.post(
-            f"{TELEGRAM_API}/sendMessage",
-            json={
-                "chat_id": chat_id,
-                "text": reply
-            },
-            timeout=10
-        )
+    reply = f"🧠 Fact-check received:\n\n{text}"
 
-        return "ok", 200
+    requests.post(
+        f"{TELEGRAM_API}/sendMessage",
+        json={
+            "chat_id": chat_id,
+            "text": reply
+        },
+        timeout=10
+    )
 
-    except Exception as e:
-        print("Webhook error:", e)
-        return "ok", 200   # 🔥 VERY IMPORTANT
+    return jsonify({"status": "ok"}), 200
 
-def fact_check(text):
-    return f"🧪 Fact-check received:\n\n{text}\n\n( AI response coming soon 🚀 )"
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
 

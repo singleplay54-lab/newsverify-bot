@@ -1,42 +1,36 @@
-import os
 from flask import Flask, request
-import google.generativeai as genai
+import requests
+import os
 
 app = Flask(__name__)
 
-# Gemini API key
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-
-model = genai.GenerativeModel("gemini-pro")
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 @app.route("/")
 def home():
-    return "NewsVerify Bot is running ✅"
+    return "NewsVerify bot is running"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.json
-    message = data["message"]["text"]
+    data = request.get_json()
 
-    prompt = f"""
-    Fact check the following news claim.
-    Reply in simple Hindi + English mix.
-    Also suggest trusted sources.
-
-    Claim: {message}
-    """
-
-    response = model.generate_content(prompt)
-    reply = response.text
+    if "message" not in data:
+        return "ok"
 
     chat_id = data["message"]["chat"]["id"]
-    token = os.environ.get("BOT_TOKEN")
+    text = data["message"].get("text", "")
 
-    import requests
-    requests.post(
-        f"https://api.telegram.org/bot{token}/sendMessage",
-        json={"chat_id": chat_id, "text": reply}
-    )
+    reply_text = f"📌 Fact check request received:\n\n{text}"
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    requests.post(url, json={
+        "chat_id": chat_id,
+        "text": reply_text
+    })
 
     return "ok"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
+
 

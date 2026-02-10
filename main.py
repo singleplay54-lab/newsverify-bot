@@ -32,10 +32,10 @@ def webhook():
         return jsonify({"status": "no text"}), 200
 
     # 🔥 Gemini API call (INSIDE webhook)
-    gemini_url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-pro:generateContent?key={GEMINI_API_KEY}"
-    )
+  gemini_url = (
+    "https://generativelanguage.googleapis.com/v1beta/models/"
+    f"gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+)
 
     payload = {
         "contents": [{

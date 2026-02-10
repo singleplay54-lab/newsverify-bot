@@ -1,36 +1,53 @@
-from flask import Flask, request
-import requests
 import os
+import requests
+from flask import Flask, request
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 app = Flask(__name__)
 
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 @app.route("/")
 def home():
-    return "NewsVerify bot is running"
+    return "Bot is running"
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json()
+    try:
+        data = request.get_json(force=True)
+        print("Incoming update:", data)
 
-    if "message" not in data:
-        return "ok"
+        if "message" not in data:
+            return "ok", 200
 
-    chat_id = data["message"]["chat"]["id"]
-    text = data["message"].get("text", "")
+        chat_id = data["message"]["chat"]["id"]
+        text = data["message"].get("text", "")
 
-    reply_text = f"📌 Fact check request received:\n\n{text}"
+        if not text:
+            return "ok", 200
 
-    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": chat_id,
-        "text": reply_text
-    })
+        reply = fact_check(text)
 
-    return "ok"
+        requests.post(
+            f"{TELEGRAM_API}/sendMessage",
+            json={
+                "chat_id": chat_id,
+                "text": reply
+            },
+            timeout=10
+        )
+
+        return "ok", 200
+
+    except Exception as e:
+        print("Webhook error:", e)
+        return "ok", 200   # 🔥 VERY IMPORTANT
+
+def fact_check(text):
+    return f"🧪 Fact-check received:\n\n{text}\n\n( AI response coming soon 🚀 )"
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
-
+    app.run(host="0.0.0.0", port=5000)
 
